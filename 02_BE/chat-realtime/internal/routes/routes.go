@@ -2,16 +2,18 @@ package routes
 
 import (
 	"chat-realtime/internal/controllers"
+	"chat-realtime/internal/middlewares"
 	"chat-realtime/internal/repositories"
 	"net/http"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
 // initializes the routes for the server.
-func InitRoutes(db *gorm.DB) http.Handler {
+func InitRoutes(db *gorm.DB, redisClient *redis.Client) http.Handler {
 	r := gin.Default()
 
 	// Configure CORS
@@ -24,11 +26,20 @@ func InitRoutes(db *gorm.DB) http.Handler {
 
 	// init repository and controller
 	userRepository := repositories.InitUserRepository(db)
+	authRepository := repositories.InitAuthRepository(db)
 	userController := controllers.InitUserController(userRepository)
+	authController := controllers.InitAuthController(authRepository, redisClient)
 
 	// declare routes
-	r.GET("/users", userController.GetUsers)
-	r.POST("/create-user", userController.CreateUser)
+	r.POST("/login", authController.Login)
+	r.POST("/logout", authController.Logout)
+
+	validRoutes := r.Group("/protected")
+	validRoutes.Use(middlewares.VerifySessionToken(redisClient)) // Apply middleware to check token
+	{
+		validRoutes.GET("/users", userController.GetUsers)
+		validRoutes.POST("/create-user", userController.CreateUser)
+	}
 
 	return r
 }
