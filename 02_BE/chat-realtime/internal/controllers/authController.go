@@ -31,23 +31,14 @@ func (c *AuthController) Login(ctx *gin.Context) {
 		Password string `json:"password"`
 	}
 	if err := ctx.ShouldBindJSON(&loginData); err != nil {
-		bindErr := helpers.CreateError(helpers.StatusBadRequest, helpers.GetErrorMessage("E003"))
-		ctx.JSON(bindErr.Status, gin.H{
-			"error": gin.H{
-				"status":  bindErr.Status,
-				"message": bindErr.Message,
-			},
-		})
+		bindErr := helpers.CreateResponse(helpers.StatusBadRequest, helpers.GetMessage("E003"))
+		ctx.JSON(bindErr.Status, gin.H{"status": bindErr.Status, "message": bindErr.Message})
 		return
 	}
-	user, err := c.Repo.Login(loginData.Email, loginData.Password)
-	if err != nil {
-		ctx.JSON(err.Status, gin.H{
-			"error": gin.H{
-				"status":  err.Status,
-				"message": err.Message,
-			},
-		})
+	user, res := c.Repo.Login(loginData.Email, loginData.Password)
+	if res.Status != helpers.StatusOK {
+		// has error
+		ctx.JSON(res.Status, gin.H{"status": res.Status, "message": res.Message})
 		return
 	}
 
@@ -57,19 +48,11 @@ func (c *AuthController) Login(ctx *gin.Context) {
 	ctxRedis := context.Background()
 	redisErr := c.Redis.Set(ctxRedis, sessionToken, user.ID, 24*time.Hour).Err()
 	if redisErr != nil {
-		redisHelperErr := helpers.CreateError(helpers.StatusBadRequest, helpers.GetErrorMessage("E005"))
-		ctx.JSON(redisHelperErr.Status, gin.H{
-			"error": gin.H{
-				"status":  redisHelperErr.Status,
-				"message": redisHelperErr.Message,
-			},
-		})
+		redisHelperErr := helpers.CreateResponse(helpers.StatusBadRequest, helpers.GetMessage("E005"))
+		ctx.JSON(redisHelperErr.Status, gin.H{"status": redisHelperErr.Status, "message": redisHelperErr.Message})
 		return
 	}
-	ctx.JSON(helpers.StatusOK, gin.H{
-		"user":  user,
-		"token": sessionToken,
-	})
+	ctx.JSON(res.Status, gin.H{"status": res.Status, "message": res.Message, "payload": user, "token": sessionToken})
 }
 
 // logout
@@ -77,29 +60,19 @@ func (c *AuthController) Logout(ctx *gin.Context) {
 	sessionToken := ctx.GetHeader("Authorization")
 
 	if sessionToken == "" {
-		err := helpers.CreateError(helpers.StatusBadRequest, helpers.GetErrorMessage("E006"))
-		ctx.JSON(err.Status, gin.H{
-			"error": gin.H{
-				"status":  err.Status,
-				"message": err.Message,
-			},
-		})
+		err := helpers.CreateResponse(helpers.StatusBadRequest, helpers.GetMessage("E006"))
+		ctx.JSON(err.Status, gin.H{"status": err.Status, "message": err.Message})
 		return
 	}
 
 	ctxRedis := context.Background()
 	err := c.Redis.Del(ctxRedis, sessionToken).Err()
 	if err != nil {
-		logoutErr := helpers.CreateError(helpers.StatusBadRequest, helpers.GetErrorMessage("E007"))
-		ctx.JSON(logoutErr.Status, gin.H{
-			"error": gin.H{
-				"status":  logoutErr.Status,
-				"message": logoutErr.Message,
-			},
-		})
+		logoutErr := helpers.CreateResponse(helpers.StatusBadRequest, helpers.GetMessage("E007"))
+		ctx.JSON(logoutErr.Status, gin.H{"status": logoutErr.Status, "message": logoutErr.Message})
 		return
 	}
-	ctx.JSON(helpers.StatusOK, nil)
+	ctx.JSON(helpers.StatusOK, helpers.CreateResponse(helpers.StatusOK, helpers.GetMessage("S001")))
 }
 
 func GenerateRandomString(length int) string {

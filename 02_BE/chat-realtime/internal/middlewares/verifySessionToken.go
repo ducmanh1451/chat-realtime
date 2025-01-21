@@ -13,13 +13,8 @@ func VerifySessionToken(redisClient *redis.Client) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		sessionToken := ctx.GetHeader("Authorization")
 		if sessionToken == "" {
-			unauthorizedErr := helpers.CreateError(helpers.StatusBadRequest, helpers.GetErrorMessage("E006"))
-			ctx.JSON(unauthorizedErr.Status, gin.H{
-				"error": gin.H{
-					"status":  unauthorizedErr.Status,
-					"message": unauthorizedErr.Message,
-				},
-			})
+			unauthorizedErr := helpers.CreateResponse(helpers.StatusBadRequest, helpers.GetMessage("E006"))
+			ctx.JSON(unauthorizedErr.Status, gin.H{"status": unauthorizedErr.Status, "message": unauthorizedErr.Message})
 			ctx.Abort()
 			return
 		}
@@ -28,24 +23,14 @@ func VerifySessionToken(redisClient *redis.Client) gin.HandlerFunc {
 		ctxRedis := context.Background()
 		_, err := redisClient.Get(ctxRedis, sessionToken).Result()
 		if err == redis.Nil {
-			unauthorizedErr := helpers.CreateError(helpers.StatusUnauthorized, helpers.GetErrorMessage("E008"))
-			ctx.JSON(unauthorizedErr.Status, gin.H{
-				"error": gin.H{
-					"status":  unauthorizedErr.Status,
-					"message": unauthorizedErr.Message,
-				},
-			})
+			unauthorizedErr := helpers.CreateResponse(helpers.StatusUnauthorized, helpers.GetMessage("E008"))
+			ctx.JSON(unauthorizedErr.Status, gin.H{"status": unauthorizedErr.Status, "message": unauthorizedErr.Message})
 			ctx.Abort()
 			return
 		} else if err != nil {
 			// server error
-			unauthorizedErr := helpers.CreateError(helpers.StatusInternalServerError, helpers.GetErrorMessage("E001"))
-			ctx.JSON(unauthorizedErr.Status, gin.H{
-				"error": gin.H{
-					"status":  unauthorizedErr.Status,
-					"message": unauthorizedErr.Message,
-				},
-			})
+			unauthorizedErr := helpers.CreateResponse(helpers.StatusInternalServerError, helpers.GetMessage("E001"))
+			ctx.JSON(unauthorizedErr.Status, gin.H{"status": unauthorizedErr.Status, "message": unauthorizedErr.Message})
 			ctx.Abort()
 			return
 		}

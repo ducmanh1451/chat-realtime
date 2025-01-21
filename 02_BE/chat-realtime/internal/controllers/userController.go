@@ -19,15 +19,11 @@ func InitUserController(repo *repositories.UserRepository) *UserController {
 
 // get users
 func (c *UserController) GetUsers(ctx *gin.Context) {
-	users, err := c.Repo.GetUsers()
-	if err != nil {
-		ctx.JSON(err.Status, gin.H{"error": gin.H{
-			"status":  err.Status,
-			"message": err.Message,
-		}})
+	users, res := c.Repo.GetUsers()
+	if res != nil {
+		ctx.JSON(res.Status, gin.H{"status": res.Status, "message": res.Message, "payload": users})
 		return
 	}
-	ctx.JSON(helpers.StatusOK, users)
 }
 
 // create user
@@ -35,24 +31,33 @@ func (c *UserController) CreateUser(ctx *gin.Context) {
 	// validate body
 	var user models.User
 	if err := ctx.ShouldBindJSON(&user); err != nil {
-		bindErr := helpers.CreateError(helpers.StatusBadRequest, helpers.GetErrorMessage("E003"))
-		ctx.JSON(bindErr.Status, gin.H{"error": gin.H{
-			"status":  bindErr.Status,
-			"message": bindErr.Message,
-		}})
+		bindErr := helpers.CreateResponse(helpers.StatusBadRequest, helpers.GetMessage("E003"))
+		ctx.JSON(bindErr.Status, gin.H{"status": bindErr.Status, "message": bindErr.Message})
 		return
 	}
 
 	// call repository
-	createdUser, err := c.Repo.CreateUser(&user)
-	if err != nil {
-		ctx.JSON(err.Status, gin.H{"error": gin.H{
-			"status":  err.Status,
-			"message": err.Message,
-		}})
+	createdUser, res := c.Repo.CreateUser(&user)
+	if res != nil {
+		ctx.JSON(res.Status, gin.H{"status": res.Status, "message": res.Message, "payload": createdUser})
+		return
+	}
+}
+
+// update user
+func (c *UserController) UpdateUser(ctx *gin.Context) {
+	id := ctx.Param("id")
+
+	var userUpdate models.User
+	if err := ctx.ShouldBindJSON(&userUpdate); err != nil {
+		bindErr := helpers.CreateResponse(helpers.StatusBadRequest, helpers.GetMessage("E003"))
+		ctx.JSON(bindErr.Status, gin.H{"status": bindErr.Status, "message": bindErr.Message})
 		return
 	}
 
-	// return data
-	ctx.JSON(helpers.StatusOK, createdUser)
+	updatedUser, res := c.Repo.UpdateUser(id, &userUpdate)
+	if res != nil {
+		ctx.JSON(res.Status, gin.H{"status": res.Status, "message": res.Message, "payload": updatedUser})
+		return
+	}
 }
