@@ -17,11 +17,11 @@ func InitAuthRepository(db *gorm.DB) *AuthRepository {
 }
 
 // login
-func (r *AuthRepository) Login(email string, password string) (*models.User, *helpers.Error) {
+func (r *AuthRepository) Login(email string, password string) (*models.User, *helpers.Response) {
 	var user models.User
 	// check exist user
 	if err := r.DB.Table("user").Where("email = ? AND password = ?", email, password).First(&user).Error; err != nil {
-		return nil, helpers.CreateError(helpers.StatusBadRequest, helpers.GetErrorMessage("E004"))
+		return nil, helpers.CreateResponse(helpers.StatusBadRequest, helpers.GetMessage("E004"))
 	}
-	return &user, nil
+	return &user, helpers.CreateResponse(helpers.StatusOK, helpers.GetMessage("S001"))
 }

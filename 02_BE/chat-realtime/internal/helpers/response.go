@@ -1,12 +1,12 @@
 package helpers
 
-type Error struct {
+type Response struct {
 	Status  int    `json:"status"`
 	Message string `json:"message"`
 }
 
-func CreateError(status int, message string) *Error {
-	return &Error{
+func CreateResponse(status int, message string) *Response {
+	return &Response{
 		Status:  status,
 		Message: message,
 	}
